@@ -20,22 +20,22 @@ export default function (options = {}) {
         }
     })
 
-    return function* _parameter(next) {
-        let ctx = this.app.context
+    return async function _parameter(ctx, next) {
+        let context = ctx.app.context
         
-        if (!ctx.getParameter) {
-            ctx.getParameter = function (key, isXSS = true) {
+        if (!context.getParameter) {
+            context.getParameter = function (key, isXSS = true) {
                 return handler.call(this, key, false, isXSS)
             }
         }
 
-        if (!ctx.getParameters) {
-            ctx.getParameters = function (key, isXSS = true) {
+        if (!context.getParameters) {
+            context.getParameters = function (key, isXSS = true) {
                 return handler.call(this, key, true, isXSS)
             }
         }
-        
-        yield* body.call(this, next)
+
+        await body(ctx, next)
     }
 }
 

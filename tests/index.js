@@ -12,17 +12,18 @@ const req = request.defaults({
 })
 
 test.before.cb((t) => {
-    let app = koa()
+    let app = new koa()
     
     app.use(parameter())
-    app.use(mount('/parameter', function *() {
-        this.body = {
-            data: this.getParameter('a', this.getParameter('xss') === false ? false : true)
+    app.use(mount('/parameter', async function(ctx, next) {
+
+        ctx.body = {
+            data: ctx.getParameter('a', ctx.getParameter('xss') === false ? false : true)
         }
     }))
-    app.use(mount('/parameters', function *() {
-        this.body = {
-            data: this.getParameters('a', this.getParameter('xss') === false ? false : true)
+    app.use(mount('/parameters', async function(ctx, next) {
+        ctx.body = {
+            data: ctx.getParameters('a', ctx.getParameter('xss') === false ? false : true)
         }
     }))
     app.listen(3000, t.end)
