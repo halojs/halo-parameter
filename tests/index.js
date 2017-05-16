@@ -26,6 +26,11 @@ test.before.cb((t) => {
             data: ctx.getParameters('a', ctx.getParameter('xss') === false ? false : true)
         }
     }))
+    app.use(mount('/destruction_parameter', async function(ctx, next) {
+        ctx.body = {
+            data: ctx.getParameter('a.b')
+        }
+    }))
     app.listen(3000, t.end)
 })
 
@@ -227,6 +232,27 @@ test.cb('upload file, use getParameters method, in POST', (t) => {
         }
     }, (err, res, body) => {
         t.is(body.data[0].name, 'package.json')
+        t.end()
+    })
+})
+
+test.cb('get destruction parameter', (t) => {
+    req.get('/destruction_parameter', { qs: { a: { b: 1 } } }, (err, res, body) => {
+        t.is(body.data, 1)
+        t.end()
+    })
+})
+
+test.cb('post destruction parameter', (t) => {
+    req.post('/destruction_parameter', { body: { a: { b: 1 } } }, (err, res, body) => {
+        t.is(body.data, 1)
+        t.end()
+    })
+})
+
+test.cb('get destruction parameter, not b field', (t) => {
+    req.get('/destruction_parameter', { body: { a: { c: { b: 1 } } } }, (err, res, body) => {
+        t.is(body.data, '')
         t.end()
     })
 })

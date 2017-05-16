@@ -49,13 +49,13 @@ function handler(key, multiple, isXSS) {
             query = queryCache[this.querystring] = converter(qs.parse(this.querystring))
         }
 
-        value = query[key]
+        value = key.includes('.') ? destruction(query, key) : query[key]
     } else if (this.request.body) {
         if (this.is('multipart')) {
             Object.assign(this.request.body, this.request.body.fields, this.request.body.files)
         }
         
-        value = this.request.body[key]
+        value = key.includes('.') ? destruction(this.request.body, key) : this.request.body[key]
     }
     
     if (['', undefined, null].includes(value)) {
@@ -109,6 +109,16 @@ function converter(val) {
     }
 
     return val
+}
+
+function destruction(obj, key) {
+    for (key of key.split('.')) {
+        if (!(obj = obj[key])) {
+            break
+        }
+    }
+
+    return obj
 }
 
 function isNumeric(val) {
