@@ -251,7 +251,7 @@ test.cb('post destruction parameter', (t) => {
 })
 
 test.cb('get destruction parameter, not b field', (t) => {
-    req.get('/destruction_parameter', { body: { a: { c: { b: 1 } } } }, (err, res, body) => {
+    req.post('/destruction_parameter', { body: { a: { c: { b: 1 } } } }, (err, res, body) => {
         t.is(body.data, '')
         t.end()
     })
