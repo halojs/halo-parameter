@@ -23,14 +23,14 @@ exports.default = function (options = {}) {
         let context = ctx.app.context;
 
         if (!context.getParameter) {
-            context.getParameter = function (key, isXSS = true) {
-                return handler.call(this, key, false, isXSS);
+            context.getParameter = function (key, defaultValue, isXSS = true) {
+                return handler.call(this, key, defaultValue, false, isXSS);
             };
         }
 
         if (!context.getParameters) {
-            context.getParameters = function (key, isXSS = true) {
-                return handler.call(this, key, true, isXSS);
+            context.getParameters = function (key, defaultValue, isXSS = true) {
+                return handler.call(this, key, defaultValue, true, isXSS);
             };
         }
 
@@ -56,7 +56,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 let queryCache = {};
 
-function handler(key, multiple, isXSS) {
+function handler(key, defaultValue, multiple, isXSS) {
     let value = '';
 
     if (this.idempotent && this.querystring) {
@@ -75,7 +75,11 @@ function handler(key, multiple, isXSS) {
         value = key.includes('.') ? destruction(this.request.body, key) : this.request.body[key];
     }
 
-    if (!value) {
+    if (!value && defaultValue) {
+        value = converter(defaultValue);
+    }
+
+    if (!value && value !== false && value !== 0) {
         return value;
     }
 
@@ -125,6 +129,10 @@ function converter(val) {
         }, {});
     }
 
+    if (isArrayStr(val) || isObjectStr(val)) {
+        return converter(JSON.parse(val));
+    }
+
     return val;
 }
 
@@ -156,4 +164,12 @@ function isBoolean(val) {
 
 function isObject(val) {
     return typeof val === 'object' && !isArray(val);
+}
+
+function isArrayStr(val) {
+    return val.indexOf('[') === 0 && val.lastIndexOf(']') === val.length - 1;
+}
+
+function isObjectStr(val) {
+    return val.indexOf('{') === 0 && val.lastIndexOf('}') === val.length - 1;
 }
