@@ -16,7 +16,6 @@ test.before.cb((t) => {
     
     app.use(parameter())
     app.use(mount('/parameter', async function(ctx, next) {
-
         ctx.body = {
             data: ctx.getParameter('a', ctx.getParameter('xss') === false ? false : true)
         }
@@ -36,14 +35,14 @@ test.before.cb((t) => {
 
 test.cb('no parameters, use getParameter method', (t) => {
     req.get('/parameter', (err, res, body) => {
-        t.is(body.data, '')
+        t.is(body.data, undefined)
         t.end()
     })
 })
 
 test.cb('no parameters, use getParameters method', (t) => {
     req.get('/parameters', (err, res, body) => {
-        t.deepEqual(body.data, [])
+        t.deepEqual(body.data, undefined)
         t.end()
     })
 })
@@ -134,14 +133,14 @@ test.cb('not through the url transfer parameters, use getParameters method', (t)
 
 test.cb('no parameters, use getParameter method, in POST', (t) => {
     req.post('/parameter', (err, res, body) => {
-        t.is(body.data, '')
+        t.is(body.data, undefined)
         t.end()
     })
 })
 
 test.cb('no parameters, use getParameters method, in POST', (t) => {
     req.post('/parameters', (err, res, body) => {
-        t.deepEqual(body.data, [])
+        t.deepEqual(body.data, undefined)
         t.end()
     })
 })
@@ -252,7 +251,7 @@ test.cb('post destruction parameter', (t) => {
 
 test.cb('get destruction parameter, not b field', (t) => {
     req.post('/destruction_parameter', { body: { a: { c: { b: 1 } } } }, (err, res, body) => {
-        t.is(body.data, '')
+        t.is(body.data, undefined)
         t.end()
     })
 })

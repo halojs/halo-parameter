@@ -58,8 +58,8 @@ function handler(key, multiple, isXSS) {
         value = key.includes('.') ? destruction(this.request.body, key) : this.request.body[key]
     }
     
-    if (['', undefined, null].includes(value)) {
-        return multiple ? [] : ''
+    if (!value) {
+        return value
     }
 
     if (multiple) {
