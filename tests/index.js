@@ -33,19 +33,19 @@ test.before.cb((t) => {
     app.use(mount('/default_parameter', async function(ctx, next) {
         if (ctx.getParameter('multiple')) {
             ctx.body = {
-                number: ctx.getParameters('a', '10'),
+                number: ctx.getParameters('a', 10),
                 string: ctx.getParameters('a', 'test'),
-                boolean: ctx.getParameters('a', 'false'),
-                array: ctx.getParameters('a', '[1, 2, 3]'),
-                obj: ctx.getParameters('a', '{ "key": "value" }')
+                boolean: ctx.getParameters('a', false),
+                array: ctx.getParameters('a', [1, 2, 3]),
+                obj: ctx.getParameters('a', { key: 'value' })
             }
         } else {
             ctx.body = {
-                number: ctx.getParameter('a', '10'),
+                number: ctx.getParameter('a', 10),
                 string: ctx.getParameter('a', 'test'),
-                boolean: ctx.getParameter('a', 'false'),
-                array: ctx.getParameter('a', '[1, 2, 3]'),
-                obj: ctx.getParameter('a', '{ "key": "value" }')
+                boolean: ctx.getParameter('a', false),
+                array: ctx.getParameter('a', [1, 2, 3]),
+                obj: ctx.getParameter('a', { key: 'value' })
             }
         }
     }))
@@ -54,14 +54,14 @@ test.before.cb((t) => {
 
 test.cb('no parameters, use getParameter method', (t) => {
     req.get('/parameter', (err, res, body) => {
-        t.is(body.data, undefined)
+        t.is(body.data, '')
         t.end()
     })
 })
 
 test.cb('no parameters, use getParameters method', (t) => {
     req.get('/parameters', (err, res, body) => {
-        t.deepEqual(body.data, undefined)
+        t.deepEqual(body.data, '')
         t.end()
     })
 })
@@ -152,14 +152,14 @@ test.cb('not through the url transfer parameters, use getParameters method', (t)
 
 test.cb('no parameters, use getParameter method, in POST', (t) => {
     req.post('/parameter', (err, res, body) => {
-        t.is(body.data, undefined)
+        t.is(body.data, '')
         t.end()
     })
 })
 
 test.cb('no parameters, use getParameters method, in POST', (t) => {
     req.post('/parameters', (err, res, body) => {
-        t.deepEqual(body.data, undefined)
+        t.deepEqual(body.data, '')
         t.end()
     })
 })
