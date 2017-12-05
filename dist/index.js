@@ -72,7 +72,7 @@ function handler(key, defaultValue, multiple, isXSS) {
             Object.assign(this.request.body, this.request.body.fields, this.request.body.files);
         }
 
-        value = key.includes('.') ? destruction(this.request.body, key) : this.request.body[key];
+        value = converter(key.includes('.') ? destruction(this.request.body, key) : this.request.body[key]);
     }
 
     if (!value && defaultValue !== undefined) {
@@ -111,12 +111,16 @@ function filterXSS(val) {
 }
 
 function converter(val) {
-    if (isNumeric(val)) {
-        return +val;
+    if (isFile(val)) {
+        return val;
     }
 
     if (isBoolean(val)) {
         return val === 'true' ? true : false;
+    }
+
+    if (isNumeric(val)) {
+        return +val;
     }
 
     if (isArray(val)) {
@@ -155,9 +159,13 @@ function isString(val) {
 }
 
 function isBoolean(val) {
-    return val === 'true' || val === 'false';
+    return [true, false, 'true', 'false'].includes(val);
 }
 
 function isObject(val) {
     return typeof val === 'object' && !isArray(val);
+}
+
+function isFile(val) {
+    return !!(isObject(val) && val.path && val.name && val.lastModifiedDate);
 }
