@@ -11,18 +11,24 @@ const req = request.defaults({
     baseUrl: 'http://localhost:3000'
 })
 
+function toBoolean(val) {
+    if (val === '') { return val }
+    if (val === 'true') { return true}
+    if (val === 'false') { return false }
+}
+
 test.before.cb((t) => {
     let app = new koa()
     
     app.use(parameter())
     app.use(mount('/parameter', async function(ctx, next) {
         ctx.body = {
-            data: ctx.getParameter('a', '', ctx.getParameter('xss') === false ? false : true)
+            data: ctx.getParameter('a', toBoolean(ctx.getParameter('xss')) === false ? false : true)
         }
     }))
     app.use(mount('/parameters', async function(ctx, next) {
         ctx.body = {
-            data: ctx.getParameters('a', '', ctx.getParameter('xss') === false ? false : true)
+            data: ctx.getParameters('a', toBoolean(ctx.getParameter('xss')) === false ? false : true)
         }
     }))
     app.use(mount('/destruction_parameter', async function(ctx, next) {
@@ -30,23 +36,22 @@ test.before.cb((t) => {
             data: ctx.getParameter('a.b')
         }
     }))
-    app.use(mount('/default_parameter', async function(ctx, next) {
-        if (ctx.getParameter('multiple')) {
-            ctx.body = {
-                number: ctx.getParameters('a', 10),
-                string: ctx.getParameters('a', 'test'),
-                boolean: ctx.getParameters('a', false),
-                array: ctx.getParameters('a', [1, 2, 3]),
-                obj: ctx.getParameters('a', { key: 'value' })
-            }
-        } else {
-            ctx.body = {
-                number: ctx.getParameter('a', 10),
-                string: ctx.getParameter('a', 'test'),
-                boolean: ctx.getParameter('a', false),
-                array: ctx.getParameter('a', [1, 2, 3]),
-                obj: ctx.getParameter('a', { key: 'value' })
-            }
+    app.use(mount('/test', async function(ctx, next) {
+        ctx.body = {
+            a: ctx.getParameter('a'),
+            b: ctx.getParameter('b'),
+            c: ctx.getParameter('c'),
+            d: ctx.getParameter('d'),
+            e: ctx.getParameter('e')
+        }
+    }))
+    app.use(mount('/tests', async function(ctx, next) {
+        ctx.body = {
+            a: ctx.getParameters('a'),
+            b: ctx.getParameters('b'),
+            c: ctx.getParameters('c'),
+            d: ctx.getParameters('d'),
+            e: ctx.getParameters('e')
         }
     }))
     app.listen(3000, t.end)
@@ -59,37 +64,83 @@ test.cb('no parameters, use getParameter method', (t) => {
     })
 })
 
+test.cb('get parameter is null, false, undefined, ""', (t) => {
+    req.get('/test?a=null&b=false&c=undefined&d=""&e=', (err, res, body) => {
+        t.deepEqual(body, {
+            a: 'null',
+            b: 'false',
+            c: 'undefined',
+            d: '""',
+            e: ''
+        })
+        t.end()
+    })
+})
+
+test.cb('get parameters is null, false, undefined, ""', (t) => {
+    req.get('/tests?a=null&b=false&c=undefined&d=""&e=', (err, res, body) => {
+        t.deepEqual(body, {
+            a: ['null'],
+            b: ['false'],
+            c: ['undefined'],
+            d: ['""'],
+            e: []
+        })
+        t.end()
+    })
+})
+
+test.cb('post parameter is null, false, undefined, ""', (t) => {
+    req.post('/test', {
+        body: {
+            a: 'null',
+            b: 'false',
+            c: 'undefined',
+            d: ""
+        }
+    }, (err, res, body) => {
+        t.deepEqual(body, {
+            a: 'null',
+            b: 'false',
+            c: 'undefined',
+            d: "",
+            e: ''
+        })
+        t.end()
+    })
+})
+
 test.cb('no parameters, use getParameters method', (t) => {
     req.get('/parameters', (err, res, body) => {
-        t.deepEqual(body.data, '')
+        t.deepEqual(body.data, [])
         t.end()
     })
 })
 
 test.cb('one parameters, use getParameter method', (t) => {
     req.get('/parameter?a=1', (err, res, body) => {
-        t.is(body.data, 1)
+        t.is(body.data, '1')
         t.end()
     })
 })
 
 test.cb('one parameters, use getParameters method', (t) => {
     req.get('/parameters?a=1', (err, res, body) => {
-        t.deepEqual(body.data, [1])
+        t.deepEqual(body.data, ['1'])
         t.end()
     })
 })
 
 test.cb('multiple parameters, use getParameter method', (t) => {
     req.get('/parameter?a[]=1&a[]=2&a[]=3', (err, res, body) => {
-        t.is(body.data, 1)
+        t.is(body.data, '1')
         t.end()
     })
 })
 
 test.cb('multiple parameters, use getParameters method', (t) => {
     req.get('/parameters?a[]=1&a[]=2&a[]=3', (err, res, body) => {
-        t.deepEqual(body.data, [1, 2, 3])
+        t.deepEqual(body.data, ['1', '2', '3'])
         t.end()
     })
 })
@@ -138,14 +189,14 @@ test.cb('special parameters, use getParameters method', (t) => {
 
 test.cb('not through the url transfer parameters, use getParameter method', (t) => {
     req.get('/parameter', { qs: { a: { num: 1 } } }, (err, res, body) => {
-        t.is(body.data.num, 1)
+        t.is(body.data.num, '1')
         t.end()
     })
 })
 
 test.cb('not through the url transfer parameters, use getParameters method', (t) => {
     req.get('/parameters', { qs: { a: { num: 1 } } }, (err, res, body) => {
-        t.deepEqual(body.data, [{num: 1}])
+        t.deepEqual(body.data, [{num: '1'}])
         t.end()
     })
 })
@@ -159,7 +210,7 @@ test.cb('no parameters, use getParameter method, in POST', (t) => {
 
 test.cb('no parameters, use getParameters method, in POST', (t) => {
     req.post('/parameters', (err, res, body) => {
-        t.deepEqual(body.data, '')
+        t.deepEqual(body.data, [])
         t.end()
     })
 })
@@ -167,10 +218,10 @@ test.cb('no parameters, use getParameters method, in POST', (t) => {
 test.cb('one parameters, use getParameter method, in POST', (t) => {
     req.post('/parameter', {
         body: {
-            a: 1
+            a: '1'
         }
     }, (err, res, body) => {
-        t.is(body.data, 1)
+        t.is(body.data, '1')
         t.end()
     })
 })
@@ -178,10 +229,10 @@ test.cb('one parameters, use getParameter method, in POST', (t) => {
 test.cb('one parameters, use getParameters method, in POST', (t) => {
     req.post('/parameters', {
         body: {
-            a: 1
+            a: '1'
         }
     }, (err, res, body) => {
-        t.deepEqual(body.data, [1])
+        t.deepEqual(body.data, ['1'])
         t.end()
     })
 })
@@ -211,7 +262,7 @@ test.cb('filter xss, use getParameters method, in POST', (t) => {
 test.cb('no filter xss, use getParameter method, in POST', (t) => {
     req.post('/parameter', {
         body: {
-            xss: false,
+            xss: 'false',
             a: '<script>alert("xss")</script>'
         }
     }, (err, res, body) => {
@@ -223,7 +274,7 @@ test.cb('no filter xss, use getParameter method, in POST', (t) => {
 test.cb('no filter xss, use getParameters method, in POST', (t) => {
     req.post('/parameters', {
         body: {
-            xss: false,
+            xss: 'false',
             a: '<script>alert("xss")</script>'
         }
     }, (err, res, body) => {
@@ -256,43 +307,21 @@ test.cb('upload file, use getParameters method, in POST', (t) => {
 
 test.cb('get destruction parameter', (t) => {
     req.get('/destruction_parameter', { qs: { a: { b: 1 } } }, (err, res, body) => {
-        t.is(body.data, 1)
+        t.is(body.data, '1')
         t.end()
     })
 })
 
 test.cb('post destruction parameter', (t) => {
-    req.post('/destruction_parameter', { body: { a: { b: 1 } } }, (err, res, body) => {
-        t.is(body.data, 1)
+    req.post('/destruction_parameter', { body: { a: { b: '1' } } }, (err, res, body) => {
+        t.is(body.data, '1')
         t.end()
     })
 })
 
 test.cb('get destruction parameter, not b field', (t) => {
     req.post('/destruction_parameter', { body: { a: { c: { b: 1 } } } }, (err, res, body) => {
-        t.is(body.data, undefined)
-        t.end()
-    })
-})
-
-test.cb('get default value', (t) => {
-    req.get('/default_parameter', (err, res, body) => {
-        t.is(body.number, 10)
-        t.is(body.string, 'test')
-        t.is(body.boolean, false)
-        t.is(body.array, 1)
-        t.is(JSON.stringify(body.obj), JSON.stringify({ key: 'value' }))
-        t.end()
-    })
-})
-
-test.cb('get multiple default value', (t) => {
-    req.get('/default_parameter?multiple=true', (err, res, body) => {
-        t.is(JSON.stringify(body.number), JSON.stringify([10]))
-        t.is(JSON.stringify(body.string), JSON.stringify(['test']))
-        t.is(JSON.stringify(body.boolean), JSON.stringify([false]))
-        t.is(JSON.stringify(body.array), JSON.stringify([1, 2, 3]))
-        t.is(JSON.stringify(body.obj), JSON.stringify([{ key: 'value' }]))
+        t.is(body.data, '')
         t.end()
     })
 })

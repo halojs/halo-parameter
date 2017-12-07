@@ -23,14 +23,14 @@ exports.default = function (options = {}) {
         let context = ctx.app.context;
 
         if (!context.getParameter) {
-            context.getParameter = function (key, defaultValue, isXSS = true) {
-                return handler.call(this, key, defaultValue, false, isXSS);
+            context.getParameter = function (key, isXSS = true) {
+                return handler.call(this, key, false, isXSS);
             };
         }
 
         if (!context.getParameters) {
-            context.getParameters = function (key, defaultValue, isXSS = true) {
-                return handler.call(this, key, defaultValue, true, isXSS);
+            context.getParameters = function (key, isXSS = true) {
+                return handler.call(this, key, true, isXSS);
             };
         }
 
@@ -52,19 +52,15 @@ var _koaBody2 = _interopRequireDefault(_koaBody);
 
 var _path = require('path');
 
+var _zlib = require('zlib');
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-let queryCache = {};
-
-function handler(key, defaultValue, multiple, isXSS) {
+function handler(key, multiple, isXSS) {
     let value = '';
 
     if (this.idempotent && this.querystring) {
-        let query = queryCache[this.querystring];
-
-        if (!query) {
-            query = queryCache[this.querystring] = converter(_qs2.default.parse(this.querystring));
-        }
+        let query = _qs2.default.parse(this.querystring);
 
         value = key.includes('.') ? destruction(query, key) : query[key];
     } else if (this.request.body) {
@@ -72,15 +68,11 @@ function handler(key, defaultValue, multiple, isXSS) {
             Object.assign(this.request.body, this.request.body.fields, this.request.body.files);
         }
 
-        value = converter(key.includes('.') ? destruction(this.request.body, key) : this.request.body[key]);
+        value = key.includes('.') ? destruction(this.request.body, key) : this.request.body[key];
     }
 
-    if (!value && defaultValue !== undefined) {
-        value = defaultValue;
-    }
-
-    if (!value && value !== false && value !== 0) {
-        return value;
+    if (!value) {
+        return multiple ? [] : '';
     }
 
     if (multiple) {
@@ -110,32 +102,6 @@ function filterXSS(val) {
     return isString(val) ? (0, _xss2.default)(val) : val;
 }
 
-function converter(val) {
-    if (isFile(val)) {
-        return val;
-    }
-
-    if (isBoolean(val)) {
-        return val === 'true' ? true : false;
-    }
-
-    if (isNumeric(val)) {
-        return +val;
-    }
-
-    if (isArray(val)) {
-        return val.map(item => converter(item));
-    }
-
-    if (isObject(val)) {
-        return Object.keys(val).reduce((total, value) => {
-            return total[value] = converter(val[value]), total;
-        }, {});
-    }
-
-    return val;
-}
-
 function destruction(obj, key) {
     for (key of key.split('.')) {
         if (!(obj = obj[key])) {
@@ -146,10 +112,6 @@ function destruction(obj, key) {
     return obj;
 }
 
-function isNumeric(val) {
-    return !isNaN(val);
-}
-
 function isArray(val) {
     return Array.isArray(val);
 }
@@ -158,14 +120,6 @@ function isString(val) {
     return typeof val === 'string';
 }
 
-function isBoolean(val) {
-    return [true, false, 'true', 'false'].includes(val);
-}
-
 function isObject(val) {
     return typeof val === 'object' && !isArray(val);
-}
-
-function isFile(val) {
-    return !!(isObject(val) && val.path && val.name && val.lastModifiedDate);
 }
